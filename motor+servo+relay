@@ -8,22 +8,20 @@
 #define LED_BUILTIN 2
 
 // === Pin Motor ===
-const int in1R = 14;
-const int in2R = 27;
-const int enR = 12;
+const int in1R = 25;
+const int in2R = 26;
+const int enR = 33;
 
-const int in1L = 26;
-const int in2L = 25;
-const int enL = 33;
+const int in1L = 14;
+const int in2L = 27;
+const int enL = 12;
 
 // === Pin Servo ===
 const int SERVO_PIN = 18;    // Servo on pin 18
-const int SERVO_KANAN = 45;   // Derajat servo kanan
-const int SERVO_KIRI = 175;  // Derajat servo kiri
+const int SERVO_KANAN = 55;   // Derajat servo kanan
+const int SERVO_KIRI = 180;  // Derajat servo kiri
 const int SERVO_DEPAN = 110; // Derajat servo depan
 int servoPos = 110;          // Posisi awal servo
-int originalServoPos = 110;  // Posisi asli servo
-int servoState = 110;          // 0: center, 1: left, 2: right
 
 // === Pin Relay ===
 #define PUMP_RELAY_PIN 19    // Relay on pin 19, NO, active HIGH
@@ -49,6 +47,20 @@ void moveForward(int speed);
 void moveBackward(int speed);
 void turnRight(int speed);
 void turnLeft(int speed);
+
+// === Fungsi Servo Wave ===
+void servoWave() {
+  Serial.println("Starting servo wave sequence");
+  myServo.write(SERVO_KIRI);  // Move to left (180°)
+  Serial.println("Servo moved to left: " + String(SERVO_KIRI));
+  delay(500);                // Wait 500ms
+  myServo.write(SERVO_KANAN); // Move to right (0°)
+  Serial.println("Servo moved to right: " + String(SERVO_KANAN));
+  delay(500);                // Wait 500ms
+  myServo.write(SERVO_DEPAN); // Return to center (110°)
+  Serial.println("Servo returned to center: " + String(SERVO_DEPAN));
+  servoPos = SERVO_DEPAN;    // Update servo position
+}
 
 // === Callback Saat Koneksi BLE Terhubung / Terputus ===
 class MyServerCallbacks : public BLEServerCallbacks {
@@ -114,17 +126,7 @@ class MyCallbacks : public BLECharacteristicCallbacks {
       // Servo control saat tombol O (rxValue[5] & 0x08) ditekan
       bool currentOButtonState = (extraButtons & 0x08);
       if (currentOButtonState && !lastOButtonState) { // Detect rising edge
-        // Cycle through servo positions: center -> left -> right -> center
-        servoState = (servoState + 1) % 3; // Increment state (0, 1, 2)
-        if (servoState == 0) {
-          servoPos = SERVO_DEPAN; // Center
-        } else if (servoState == 1) {
-          servoPos = SERVO_KIRI;  // Left
-        } else {
-          servoPos = SERVO_KANAN; // Right
-        }
-        myServo.write(servoPos);
-        Serial.println("Servo commanded to: " + String(servoPos));
+        servoWave(); // Perform wave sequence
       }
       lastOButtonState = currentOButtonState; // Update button state
 
