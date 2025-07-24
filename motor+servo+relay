@@ -18,7 +18,7 @@ const int enL = 12;
 
 // === Pin Servo ===
 const int SERVO_PIN = 18;    // Servo on pin 18
-const int SERVO_KANAN = 55;   // Derajat servo kanan
+const int SERVO_KANAN = 40;   // Derajat servo kanan
 const int SERVO_KIRI = 180;  // Derajat servo kiri
 const int SERVO_DEPAN = 110; // Derajat servo depan
 int servoPos = 110;          // Posisi awal servo
@@ -53,10 +53,10 @@ void servoWave() {
   Serial.println("Starting servo wave sequence");
   myServo.write(SERVO_KIRI);  // Move to left (180°)
   Serial.println("Servo moved to left: " + String(SERVO_KIRI));
-  delay(500);                // Wait 500ms
+  delay(500);                // Wait 50ms
   myServo.write(SERVO_KANAN); // Move to right (0°)
   Serial.println("Servo moved to right: " + String(SERVO_KANAN));
-  delay(500);                // Wait 500ms
+  delay(500);                // Wait 50ms
   myServo.write(SERVO_DEPAN); // Return to center (110°)
   Serial.println("Servo returned to center: " + String(SERVO_DEPAN));
   servoPos = SERVO_DEPAN;    // Update servo position
