@@ -49,7 +49,7 @@ class MyServerCallbacks : public BLEServerCallbacks {
 // === Callback Saat Data Masuk dari Aplikasi ===
 class MyCallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pCharacteristic) {
-    std::string rxValue = pCharacteristic->getValue();
+    String rxValue = pCharacteristic->getValue(); // Use Arduino String
 
     if (rxValue.length() >= 7) {
       uint8_t buttons = rxValue[6];  // Byte ke-7 menyimpan data tombol Gamepad
