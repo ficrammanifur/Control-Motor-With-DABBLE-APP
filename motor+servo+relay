@@ -18,12 +18,12 @@ const int enL = 33;
 
 // === Pin Servo ===
 const int SERVO_PIN = 18;    // Servo on pin 18
-const int SERVO_KANAN = 0;   // Derajat servo kanan
-const int SERVO_KIRI = 180;  // Derajat servo kiri
+const int SERVO_KANAN = 45;   // Derajat servo kanan
+const int SERVO_KIRI = 175;  // Derajat servo kiri
 const int SERVO_DEPAN = 110; // Derajat servo depan
 int servoPos = 110;          // Posisi awal servo
 int originalServoPos = 110;  // Posisi asli servo
-int servoState = 0;          // 0: center, 1: left, 2: right
+int servoState = 110;          // 0: center, 1: left, 2: right
 
 // === Pin Relay ===
 #define PUMP_RELAY_PIN 19    // Relay on pin 19, NO, active HIGH
