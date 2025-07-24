@@ -17,7 +17,7 @@ const int in2L = 27;
 const int enL = 12;
 
 // === Pin Servo ===
-const int SERVO_PIN = 18;    // Servo on pin 18
+const int SERVO_PIN = 13;    // Servo on pin 13
 const int SERVO_KANAN = 40;   // Derajat servo kanan
 const int SERVO_KIRI = 180;  // Derajat servo kiri
 const int SERVO_DEPAN = 110; // Derajat servo depan
@@ -35,6 +35,7 @@ bool deviceConnected = false;
 bool oldDeviceConnected = false;
 bool lastOButtonState = false; // Track previous state of 'O' button
 bool lastTriangleButtonState = false; // Track previous state of Triangle button
+bool scanning = false;
 
 #define BLE_NAME "ROBOT-BLE"
 #define SERVICE_UUID           "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
@@ -49,17 +50,37 @@ void turnRight(int speed);
 void turnLeft(int speed);
 
 // === Fungsi Servo Wave ===
-void servoWave() {
-  Serial.println("Starting servo wave sequence");
-  myServo.write(SERVO_KIRI);  // Move to left (180°)
-  Serial.println("Servo moved to left: " + String(SERVO_KIRI));
-  delay(500);                // Wait 50ms
-  myServo.write(SERVO_KANAN); // Move to right (0°)
-  Serial.println("Servo moved to right: " + String(SERVO_KANAN));
-  delay(500);                // Wait 50ms
-  myServo.write(SERVO_DEPAN); // Return to center (110°)
+void servoScan() {
+  Serial.println("Starting servo smooth wave sequence");
+  scanning = true;
+
+  // Scan ke kiri (40 -> 180)
+  for (int pos = SERVO_KANAN; pos <= SERVO_KIRI; pos += 1) {
+    myServo.write(pos);
+    Serial.print("Scanning ke kiri: ");
+    Serial.print(pos);
+    Serial.println(" derajat");
+    delay(10); // Smooth motion
+  }
+
+  delay(200); // Jeda singkat di ujung
+
+  // Scan ke kanan (180 -> 40)
+  for (int pos = SERVO_KIRI; pos >= SERVO_KANAN; pos -= 1) {
+    myServo.write(pos);
+    Serial.print("Scanning ke kanan: ");
+    Serial.print(pos);
+    Serial.println(" derajat");
+    delay(10); // Smooth motion
+  }
+
+  // Kembali ke posisi tengah
+  myServo.write(SERVO_DEPAN);
+  servoPos = SERVO_DEPAN;
   Serial.println("Servo returned to center: " + String(SERVO_DEPAN));
-  servoPos = SERVO_DEPAN;    // Update servo position
+  delay(200);
+
+  scanning = false;
 }
 
 // === Callback Saat Koneksi BLE Terhubung / Terputus ===
@@ -126,7 +147,7 @@ class MyCallbacks : public BLECharacteristicCallbacks {
       // Servo control saat tombol O (rxValue[5] & 0x08) ditekan
       bool currentOButtonState = (extraButtons & 0x08);
       if (currentOButtonState && !lastOButtonState) { // Detect rising edge
-        servoWave(); // Perform wave sequence
+        servoScan(); // Perform smooth wave sequence
       }
       lastOButtonState = currentOButtonState; // Update button state
 
