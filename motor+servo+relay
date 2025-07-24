@@ -22,6 +22,9 @@ const int SERVO_KANAN = 40;   // Derajat servo kanan
 const int SERVO_KIRI = 180;  // Derajat servo kiri
 const int SERVO_DEPAN = 110; // Derajat servo depan
 int servoPos = 110;          // Posisi awal servo
+bool servoAttached = false;  // Flag untuk memastikan servo ter-attach
+bool motorActive = false;    // Flag untuk track status motor
+unsigned long lastServoWrite = 0; // Timestamp servo terakhir ditulis
 
 // === Pin Relay ===
 #define PUMP_RELAY_PIN 19    // Relay on pin 19, NO, active HIGH
@@ -49,37 +52,74 @@ void moveBackward(int speed);
 void turnRight(int speed);
 void turnLeft(int speed);
 
-// === Fungsi Servo Wave ===
+// === Fungsi Servo - Perbaikan untuk Voltage Drop ===
+void safeServoWrite(int angle) {
+  if (servoAttached && angle >= 0 && angle <= 180) {
+    // Jika motor sedang aktif, tunda penulisan servo
+    if (motorActive) {
+      Serial.println("Motor active - servo write delayed");
+      return;
+    }
+    
+    myServo.write(angle);
+    servoPos = angle;
+    lastServoWrite = millis();
+    Serial.println("Servo moved to: " + String(angle) + " degrees");
+    delay(20); // Tambahkan delay untuk stabilitas
+  } else {
+    Serial.println("ERROR: Servo not attached or invalid angle: " + String(angle));
+  }
+}
+
+void maintainServoPosition() {
+  // Re-write servo position setiap 100ms jika tidak ada motor yang aktif
+  if (servoAttached && !motorActive && !scanning && (millis() - lastServoWrite > 100)) {
+    myServo.write(servoPos);
+    lastServoWrite = millis();
+  }
+}
+
 void servoScan() {
+  if (!servoAttached) {
+    Serial.println("ERROR: Cannot scan - servo not properly attached");
+    return;
+  }
+  
+  if (motorActive) {
+    Serial.println("Cannot scan - motor is active");
+    return;
+  }
+  
   Serial.println("Starting servo smooth wave sequence");
   scanning = true;
 
   // Scan ke kiri (40 -> 180)
-  for (int pos = SERVO_KANAN; pos <= SERVO_KIRI; pos += 1) {
-    myServo.write(pos);
-    Serial.print("Scanning ke kiri: ");
-    Serial.print(pos);
-    Serial.println(" derajat");
-    delay(10); // Smooth motion
+  for (int pos = SERVO_KANAN; pos <= SERVO_KIRI; pos += 3) { // Lebih cepat untuk menghindari interferensi
+    if (motorActive) break; // Stop jika motor aktif
+    safeServoWrite(pos);
+    delay(20);
   }
 
-  delay(200); // Jeda singkat di ujung
+  if (!motorActive) delay(200); // Jeda di ujung jika motor tidak aktif
 
   // Scan ke kanan (180 -> 40)
-  for (int pos = SERVO_KIRI; pos >= SERVO_KANAN; pos -= 1) {
-    myServo.write(pos);
-    Serial.print("Scanning ke kanan: ");
-    Serial.print(pos);
-    Serial.println(" derajat");
-    delay(10); // Smooth motion
+  for (int pos = SERVO_KIRI; pos >= SERVO_KANAN; pos -= 3) {
+    if (motorActive) break; // Stop jika motor aktif
+    safeServoWrite(pos);
+    delay(20);
   }
 
-  // Kembali ke posisi tengah
-  myServo.write(SERVO_DEPAN);
-  servoPos = SERVO_DEPAN;
-  Serial.println("Servo returned to center: " + String(SERVO_DEPAN));
-  delay(200);
-
+  // Kembali ke posisi tengah dengan perlahan
+  if (!motorActive) {
+    delay(200);
+    for (int pos = SERVO_KANAN; pos <= SERVO_DEPAN; pos += 3) {
+      if (motorActive) break;
+      safeServoWrite(pos);
+      delay(20);
+    }
+  }
+  
+  Serial.println("Servo scan completed, returned to center: " + String(SERVO_DEPAN));
   scanning = false;
 }
 
@@ -146,7 +186,7 @@ class MyCallbacks : public BLECharacteristicCallbacks {
 
       // Servo control saat tombol O (rxValue[5] & 0x08) ditekan
       bool currentOButtonState = (extraButtons & 0x08);
-      if (currentOButtonState && !lastOButtonState) { // Detect rising edge
+      if (currentOButtonState && !lastOButtonState && !scanning) { // Tambah check !scanning
         servoScan(); // Perform smooth wave sequence
       }
       lastOButtonState = currentOButtonState; // Update button state
@@ -167,6 +207,7 @@ class MyCallbacks : public BLECharacteristicCallbacks {
 
 void setup() {
   Serial.begin(115200);
+  delay(1000); // Tambahkan delay startup
 
   // === Setup Pin Motor ===
   pinMode(enR, OUTPUT);
@@ -179,16 +220,35 @@ void setup() {
   digitalWrite(enR, HIGH);
   digitalWrite(enL, HIGH);
 
-  // === Setup Pin Servo ===
-  ESP32PWM::allocateTimer(1); // Use timer 1 to avoid motor PWM conflict
+  // === Setup Pin Servo - Perbaikan untuk Power Stability ===
+  Serial.println("Initializing servo...");
+  
+  // Stop semua motor dulu untuk power stability
+  stopMotors();
+  delay(500);
+  
+  // Pastikan pin servo tidak konflik dengan PWM motor
+  ESP32PWM::allocateTimer(3); // Ubah ke timer 3 untuk menghindari konflik
   myServo.setPeriodHertz(50); // Standar 50Hz untuk servo
-  if (myServo.attach(SERVO_PIN, 500, 2500)) { // Attach dengan min/max pulse width (500us, 2500us)
+  
+  // Coba attach servo dengan parameter yang lebih konservatif
+  if (myServo.attach(SERVO_PIN, 1000, 2000)) { // Pulse width 1000-2000us
+    servoAttached = true;
     Serial.println("Servo attached successfully on pin " + String(SERVO_PIN));
+    
+    // Set posisi awal dengan delay yang cukup
+    delay(200);
+    myServo.write(SERVO_DEPAN); // Direct write untuk inisialisasi
+    servoPos = SERVO_DEPAN;
+    lastServoWrite = millis();
+    delay(1000); // Tunggu servo settle
+    
+    Serial.println("Servo initialized at position: " + String(SERVO_DEPAN));
+    
   } else {
-    Serial.println("Failed to attach servo on pin " + String(SERVO_PIN));
+    servoAttached = false;
+    Serial.println("CRITICAL ERROR: Failed to attach servo on pin " + String(SERVO_PIN));
   }
-  myServo.write(servoPos); // Set posisi awal servo
-  Serial.println("Servo initialized to: " + String(servoPos));
 
   // === Setup Pin Relay ===
   pinMode(PUMP_RELAY_PIN, OUTPUT);
@@ -222,6 +282,7 @@ void setup() {
   pServer->getAdvertising()->start();
 
   Serial.println("BLE Ready, waiting for connection...");
+  Serial.println("Current servo position: " + String(servoPos));
 }
 
 // === LOOP ===
@@ -229,6 +290,11 @@ void loop() {
   if (deviceConnected && !oldDeviceConnected) {
     oldDeviceConnected = true;
     Serial.println("BLE Connection Established");
+    
+    // Reset servo ke posisi tengah saat koneksi terbentuk
+    if (servoAttached && !motorActive) {
+      safeServoWrite(SERVO_DEPAN);
+    }
   }
 
   if (!deviceConnected && oldDeviceConnected) {
@@ -236,20 +302,36 @@ void loop() {
     delay(500);
     pServer->startAdvertising();
     stopMotors();
+    motorActive = false; // Reset motor flag
     digitalWrite(PUMP_RELAY_PIN, LOW); // Ensure relay is off on disconnect
+    
+    // Reset servo ke posisi tengah saat koneksi terputus
+    if (servoAttached) {
+      delay(100); // Tunggu motor stop
+      safeServoWrite(SERVO_DEPAN);
+    }
+    
     Serial.println("BLE Connection Lost, Restarting Advertising...");
   }
+
+  // Maintain servo position jika tidak ada motor yang aktif
+  maintainServoPosition();
 
   delay(10);
 }
 
-// === MOTOR CONTROL ===
+// === MOTOR CONTROL - Dengan Power Management ===
 void stopMotors() {
   digitalWrite(in1R, LOW); digitalWrite(in2R, LOW);
   digitalWrite(in1L, LOW); digitalWrite(in2L, LOW);
+  analogWrite(enR, 0);
+  analogWrite(enL, 0);
+  motorActive = false;
+  Serial.println("Motors stopped - servo safe to operate");
 }
 
 void moveForward(int speed) {
+  motorActive = true;
   digitalWrite(in1R, LOW); digitalWrite(in2R, HIGH);
   digitalWrite(in1L, LOW); digitalWrite(in2L, HIGH);
   analogWrite(enR, speed);
@@ -257,6 +339,7 @@ void moveForward(int speed) {
 }
 
 void moveBackward(int speed) {
+  motorActive = true;
   digitalWrite(in1R, HIGH); digitalWrite(in2R, LOW);
   digitalWrite(in1L, HIGH); digitalWrite(in2L, LOW);
   analogWrite(enR, speed);
@@ -264,6 +347,7 @@ void moveBackward(int speed) {
 }
 
 void turnRight(int speed) {
+  motorActive = true;
   digitalWrite(in1R, HIGH); digitalWrite(in2R, LOW);
   digitalWrite(in1L, LOW);  digitalWrite(in2L, HIGH);
   analogWrite(enR, speed);
@@ -271,6 +355,7 @@ void turnRight(int speed) {
 }
 
 void turnLeft(int speed) {
+  motorActive = true;
   digitalWrite(in1R, LOW);  digitalWrite(in2R, HIGH);
   digitalWrite(in1L, HIGH); digitalWrite(in2L, LOW);
   analogWrite(enR, speed);
