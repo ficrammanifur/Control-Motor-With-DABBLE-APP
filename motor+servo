@@ -1,0 +1,233 @@
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
+#include <ESP32Servo.h>
+
+// === LED untuk status koneksi ===
+#define LED_BUILTIN 2
+
+// === Pin Motor ===
+const int in1R = 14;
+const int in2R = 27;
+const int enR = 12;
+
+const int in1L = 26;
+const int in2L = 25;
+const int enL = 33;
+
+// === Pin Servo ===
+const int SERVO_PIN = 18;    // Changed to pin 18
+const int SERVO_KANAN = 0;   // Derajat servo kanan (from test sketch)
+const int SERVO_KIRI = 180;  // Derajat servo kiri
+const int SERVO_DEPAN = 110; // Derajat servo depan
+int servoPos = 110;          // Posisi awal servo
+int originalServoPos = 110;  // Posisi asli servo
+int servoState = 110;          // 0: center, 1: left, 2: right
+
+Servo myServo; // Objek servo
+
+// === BLE Variables ===
+BLEServer *pServer = NULL;
+BLECharacteristic *pTxCharacteristic;
+bool deviceConnected = false;
+bool oldDeviceConnected = false;
+bool lastOButtonState = false; // Track previous state of 'O' button
+
+#define BLE_NAME "ROBOT-BLE"
+#define SERVICE_UUID           "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
+#define CHARACTERISTIC_UUID_RX "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
+#define CHARACTERISTIC_UUID_TX "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
+
+// === Fungsi Motor ===
+void stopMotors();
+void moveForward(int speed);
+void moveBackward(int speed);
+void turnRight(int speed);
+void turnLeft(int speed);
+
+// === Callback Saat Koneksi BLE Terhubung / Terputus ===
+class MyServerCallbacks : public BLEServerCallbacks {
+  void onConnect(BLEServer *pServer) {
+    deviceConnected = true;
+    digitalWrite(LED_BUILTIN, HIGH);
+    Serial.println("BLE Device Connected Successfully");
+  }
+
+  void onDisconnect(BLEServer *pServer) {
+    deviceConnected = false;
+    digitalWrite(LED_BUILTIN, LOW);
+    Serial.println("BLE Device Disconnected");
+  }
+};
+
+// === Callback Saat Data Masuk dari Aplikasi ===
+class MyCallbacks : public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic *pCharacteristic) {
+    String rxValue = pCharacteristic->getValue(); // Use Arduino String
+
+    // Print received BLE data in hexadecimal
+    Serial.print("Received BLE Data: ");
+    for (int i = 0; i < rxValue.length(); i++) {
+      Serial.print("0x");
+      Serial.print((uint8_t)rxValue[i], HEX);
+      Serial.print(" ");
+    }
+    Serial.println();
+
+    if (rxValue.length() >= 7) {
+      uint8_t buttons = rxValue[6];  // Byte ke-7 untuk motor
+      uint8_t extraButtons = rxValue[5]; // Byte ke-6 untuk tombol O
+
+      Serial.print("Button State (rxValue[6]): 0x");
+      Serial.println(buttons, HEX);
+      Serial.print("Button State (rxValue[5]): 0x");
+      Serial.println(extraButtons, HEX);
+      if (rxValue.length() >= 8) {
+        Serial.print("rxValue[7]: 0x");
+        Serial.println((uint8_t)rxValue[7], HEX);
+      }
+
+      // Motor control
+      if (buttons & 0x01) {
+        moveForward(200);
+        Serial.println("Forward");
+      } else if (buttons & 0x02) {
+        moveBackward(150);
+        Serial.println("Backward");
+      } else if (buttons & 0x04) {
+        turnLeft(150);
+        Serial.println("Left");
+      } else if (buttons & 0x08) {
+        turnRight(150);
+        Serial.println("Right");
+      } else {
+        stopMotors();
+        Serial.println("Stop");
+      }
+
+      // Servo control saat tombol O (rxValue[5] & 0x08) ditekan
+      bool currentOButtonState = (extraButtons & 0x08);
+      if (currentOButtonState && !lastOButtonState) { // Detect rising edge
+        // Cycle through servo positions: center -> left -> right -> center
+        servoState = (servoState + 1) % 3; // Increment state (0, 1, 2)
+        if (servoState == 0) {
+          servoPos = SERVO_DEPAN; // Center
+        } else if (servoState == 1) {
+          servoPos = SERVO_KIRI;  // Left
+        } else {
+          servoPos = SERVO_KANAN; // Right
+        }
+        myServo.write(servoPos);
+        Serial.println("Servo commanded to: " + String(servoPos));
+      }
+      lastOButtonState = currentOButtonState; // Update button state
+    }
+  }
+};
+
+void setup() {
+  Serial.begin(115200);
+
+  // === Setup Pin Motor ===
+  pinMode(enR, OUTPUT);
+  pinMode(in1R, OUTPUT);
+  pinMode(in2R, OUTPUT);
+  pinMode(enL, OUTPUT);
+  pinMode(in1L, OUTPUT);
+  pinMode(in2L, OUTPUT);
+
+  digitalWrite(enR, HIGH);
+  digitalWrite(enL, HIGH);
+
+  // === Setup Pin Servo ===
+  ESP32PWM::allocateTimer(1); // Changed to timer 1 to avoid motor PWM conflict
+  myServo.setPeriodHertz(50); // Standar 50Hz untuk servo
+  if (myServo.attach(SERVO_PIN, 500, 2500)) { // Attach dengan min/max pulse width (500us, 2500us)
+    Serial.println("Servo attached successfully on pin " + String(SERVO_PIN));
+  } else {
+    Serial.println("Failed to attach servo on pin " + String(SERVO_PIN));
+  }
+  myServo.write(servoPos); // Set posisi awal servo
+  Serial.println("Servo initialized to: " + String(servoPos));
+
+  // === Setup LED Status Koneksi ===
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
+
+  // === BLE Setup ===
+  BLEDevice::init(BLE_NAME);
+  pServer = BLEDevice::createServer();
+  pServer->setCallbacks(new MyServerCallbacks());
+
+  BLEService *pService = pServer->createService(SERVICE_UUID);
+
+  pTxCharacteristic = pService->createCharacteristic(
+    CHARACTERISTIC_UUID_TX,
+    BLECharacteristic::PROPERTY_NOTIFY
+  );
+  pTxCharacteristic->addDescriptor(new BLE2902());
+
+  BLECharacteristic *pRxCharacteristic = pService->createCharacteristic(
+    CHARACTERISTIC_UUID_RX,
+    BLECharacteristic::PROPERTY_WRITE
+  );
+  pRxCharacteristic->setCallbacks(new MyCallbacks());
+
+  pService->start();
+  pServer->getAdvertising()->start();
+
+  Serial.println("BLE Ready, waiting for connection...");
+}
+
+// === LOOP ===
+void loop() {
+  if (deviceConnected && !oldDeviceConnected) {
+    oldDeviceConnected = true;
+    Serial.println("BLE Connection Established");
+  }
+
+  if (!deviceConnected && oldDeviceConnected) {
+    oldDeviceConnected = false;
+    delay(500);
+    pServer->startAdvertising();
+    stopMotors();
+    Serial.println("BLE Connection Lost, Restarting Advertising...");
+  }
+
+  delay(10);
+}
+
+// === MOTOR CONTROL ===
+void stopMotors() {
+  digitalWrite(in1R, LOW); digitalWrite(in2R, LOW);
+  digitalWrite(in1L, LOW); digitalWrite(in2L, LOW);
+}
+
+void moveForward(int speed) {
+  digitalWrite(in1R, LOW); digitalWrite(in2R, HIGH);
+  digitalWrite(in1L, LOW); digitalWrite(in2L, HIGH);
+  analogWrite(enR, speed);
+  analogWrite(enL, speed);
+}
+
+void moveBackward(int speed) {
+  digitalWrite(in1R, HIGH); digitalWrite(in2R, LOW);
+  digitalWrite(in1L, HIGH); digitalWrite(in2L, LOW);
+  analogWrite(enR, speed);
+  analogWrite(enL, speed);
+}
+
+void turnRight(int speed) {
+  digitalWrite(in1R, HIGH); digitalWrite(in2R, LOW);
+  digitalWrite(in1L, LOW);  digitalWrite(in2L, HIGH);
+  analogWrite(enR, speed);
+  analogWrite(enL, speed);
+}
+
+void turnLeft(int speed) {
+  digitalWrite(in1R, LOW);  digitalWrite(in2R, HIGH);
+  digitalWrite(in1L, HIGH); digitalWrite(in2L, LOW);
+  analogWrite(enR, speed);
+  analogWrite(enL, speed);
+}
