@@ -1,12 +1,13 @@
-# CONTROL-MOTOR-WITH-DABBLE-APP
+<h1 align="center">CONTROL-MOTOR-WITH-DABBLE-APP</h1>
+<p align="center"><em>Empower Remote Control, Unlock Limitless Automation Potential</em></p>
 
-*Empower Remote Control, Unlock Limitless Automation Potential*
+<p align="center">
+  <img src="https://img.shields.io/badge/last%20commit-today-brightgreen" />
+  <img src="https://img.shields.io/badge/c++-100%25-blue" />
+  <img src="https://img.shields.io/badge/languages-1-informational" />
+</p>
 
-![GitHub last commit](https://img.shields.io/github/last-commit/ficrammanifur/CONTROL-MOTOR-WITH-DABBLE-APP?label=last%20commit)
-![C++](https://img.shields.io/badge/language-C++-blue)
-![Languages](https://img.shields.io/github/languages/count/ficrammanifur/CONTROL-MOTOR-WITH-DABBLE-APP)
-
-Built with the tools and technologies:
+<p align="center"><em>Built with the tools and technologies:</em></p>
 
 ---
 
@@ -65,6 +66,8 @@ Pair Dabble App with ESP32 via Bluetooth.
 
 ---
 
-## 📜 License
+## 🪪 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project [ficrammanifur/Control-Motor-With-DABBLE-APP](https://github.com/ficrammanifur/Control-Motor-With-DABBLE-APP) is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+
+<p align="left"><a href="#control-motor-with-dabble-app">↑ RETURN</a></p>
