@@ -1,46 +1,70 @@
 # CONTROL-MOTOR-WITH-DABBLE-APP
-Empower Remote Control! Unlock Limitless Automation Potential!
 
-## Table of Contents
+*Empower Remote Control, Unlock Limitless Automation Potential*
+
+![GitHub last commit](https://img.shields.io/github/last-commit/ficrammanifur/CONTROL-MOTOR-WITH-DABBLE-APP?label=last%20commit)
+![C++](https://img.shields.io/badge/language-C++-blue)
+![Languages](https://img.shields.io/github/languages/count/ficrammanifur/CONTROL-MOTOR-WITH-DABBLE-APP)
+
+Built with the tools and technologies:
+
+---
+
+## 📚 Table of Contents
+
 - [Overview](#overview)
 - [Getting Started](#getting-started)
-- [Documentation](#documentation)
-- [Installation](#installation)
-- [Testing](#testing)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Usage](#usage)
+  - [Testing](#testing)
 
-## Overview
-Control-Motor-With-Dabble-APP is an open-source framework that enables developers to create remotely controllable robotic systems. It serves as a versatile solution for controlling motors and other devices via a mobile application, enhancing user interaction and automation.
+---
 
-### Why Control-Motor-With-Dabble-APP?
-This project facilitates the development of wireless robotic applications. The core features include:
-- **Bluetooth LE Dabble**: Enables seamless wireless control for movement and sensor integration.
-- **Arduino Compatibility**: Works with various Arduino boards, simplifying hardware integration.
-- **Real-time Monitoring**: Provides real-time feedback and monitoring controls for dynamic adjustments.
-- **Gesture Recognition**: Features gesture recognition capabilities for intuitive user interaction.
-- **Modular Architecture**: Supports the integration of various sensors, actuators, and control logic.
+## 📝 Overview
 
-## Getting Started
-To get started with Control-Motor-With-Dabble-APP:
+A simple project to control motors remotely using **Dabble App** over Bluetooth and Arduino. This project demonstrates a basic yet powerful way to interact with hardware via mobile.
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/username/control-motor-with-dabble-app.git
+---
 
-2. Install the necessary dependencies as outlined in the documentation.
+## 🚀 Getting Started
 
-3. Follow the installation guidelines to set up your environment.
+### 🔧 Prerequisites
 
-4. Test the integration with supported devices.
+- Arduino IDE
+- ESP32
+- Dabble App (Install on Android)
+- Motor Driver (L298N or similar)
 
-## Documentation
-Refer to the documentation for detailed information on the library, API references, and usage examples.
+### 🛠 Installation
 
-## Installation
-Provide installation instructions here, including how to set up the necessary software and hardware dependencies.
+1. Clone this repository:
+    ```bash
+    git clone https://github.com/username/CONTROL-MOTOR-WITH-DABBLE-APP.git
+    ```
+2. Open the `.ino` file in Arduino IDE.
+3. Select the correct board and COM port.
+4. Upload the code.
 
-## Testing
-Instructions on how to run tests and validate functionality.
+### ▶️ Usage
 
-↑ RETURN
+Pair Dabble App with ESP32 via Bluetooth.
 
+### ✅ Testing
 
+- Test each command by observing motor responses.
+- Ensure Bluetooth communication is stable.
+
+---
+
+## 📦 Built With
+
+- ESP32
+- Dabble App
+- L298N Motor Driver
+
+---
+
+## 📜 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
