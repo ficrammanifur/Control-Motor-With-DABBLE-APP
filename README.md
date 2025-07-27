@@ -24,7 +24,7 @@
 
 ## 📝 Overview
 
-A simple project to control motors remotely using **Dabble App** over Bluetooth and Arduino. This project demonstrates a basic yet powerful way to interact with hardware via mobile.
+A simple project to control motors remotely using **Dabble App** over Bluetooth and ESP32. This project demonstrates a basic yet powerful way to interact with hardware via mobile.
 
 ---
 
