@@ -41,7 +41,7 @@ A simple project to control motors remotely using **Dabble App** over Bluetooth 
 
 1. Clone this repository:
     ```bash
-    git clone https://github.com/username/CONTROL-MOTOR-WITH-DABBLE-APP.git
+    git clone https://github.com/username/Control-Motor-With-DABBLE-APP.git
     ```
 2. Open the `.ino` file in Arduino IDE.
 3. Select the correct board and COM port.
