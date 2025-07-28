@@ -50,6 +50,7 @@ A simple project to control motors remotely using **Dabble App** over Bluetooth 
 ### ▶️ Usage
 
 Pair Dabble App with ESP32 via Bluetooth.
+---
 
 ### ✅ Testing
 
@@ -72,5 +73,7 @@ Pair Dabble App with ESP32 via Bluetooth.
     <img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT" />
   </a>
 </p>
+
+---
 
 <p align="centre"><a href="#control-motor-with-dabble-app">⬆ Back to Top</a></p>
