@@ -66,15 +66,11 @@ Pair Dabble App with ESP32 via Bluetooth.
 
 ---
 
-## 🪪 License
-
+## 📝 License
 <p align="center">
-  <a href="https://github.com/ficrammanifur/Control-Motor-With-DABBLE-APP/blob/main/LICENSE">
+  <a href="https://github.com/ficrammanifur/ficrammanifur/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT" />
   </a>
 </p>
 
-This project [ficrammanifur/Control-Motor-With-DABBLE-APP](https://github.com/ficrammanifur/Control-Motor-With-DABBLE-APP) is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
-
-
-<p align="left"><a href="#control-motor-with-dabble-app">↑ RETURN</a></p>
+<p align="centre"><a href="#control-motor-with-dabble-app">⬆ Back to Top</a></p>
