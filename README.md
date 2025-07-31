@@ -1,4 +1,7 @@
 <h1 align="center">CONTROL-MOTOR-WITH-DABBLE-APP</h1>
+<p align="center">
+  <img src="dabbleapp.png" alt="digital mode" width="700"/>
+</p>
 <p align="center"><em>Empower Remote Control, Unlock Limitless Automation Potential</em></p>
 
 <p align="center">
