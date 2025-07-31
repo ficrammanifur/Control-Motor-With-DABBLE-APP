@@ -76,4 +76,6 @@ Pair Dabble App with ESP32 via Bluetooth.
 
 ---
 
-<p align="centre"><a href="#control-motor-with-dabble-app">⬆ Back to Top</a></p>
+<p align="center">
+  <a href="#control-motor-with-dabble-app">⬆ Back to Top</a>
+</p>
